@@ -1,5 +1,11 @@
 # Airflow Alura
 
+Glossário
+```
+- DAG: Directed Acyclic Graph
+- Hooks: Ganchos para conexões
+```
+
 ## Inicialização do Ambiente
 
 Variáveis de ambiente
@@ -53,9 +59,33 @@ airflow > create pasta plugin > create pasta hooks > criar arquivo .py hooks
 ```
 
 
-Definição alura 
-```
+**Definição - Alura**
 Hooks são interfaces para comunicar o DAG com recursos externos compartilhados, por exemplo, várias tarefas podem acessar um mesmo banco de dados MySQL. Assim, em vez de implementar uma conexão para cada tarefa, é possível receber a conexão pronta de um gancho.
 
 Hooks usam conexões para ter acesso a endereço de serviços e formas de autenticação, mantendo assim o código usado para autenticação e informações relacionadas fora das regras de negócio do data pipeline.
+
+
+## Operators
+
+Todo operator vai ter um método chamado **execute**, esse método é chamado na DAG para executar a tarefa.
+```py
+# todo operator vai ter um método chamado execute
+def execute(self, context):
+    pass
 ```
+
+**Definição - Alura**
+Um operador possuirá três características:
+1) Idempotência: Independentemente de quantas vezes uma tarefa for executada com os mesmos parâmetros, o resultado final deve ser sempre o mesmo;
+
+2) Isolamento: A tarefa não compartilha recursos com outras tarefas de qualquer outro operador;
+
+3) Atomicidade: A tarefa é um processo indivisível e bem determinado.
+
+Operadores geralmente executam de forma independente, e o DAG vai garantir que operadores sejam executados na ordem correta. Quando um operador é instanciado, ele se torna parte de um nodo no DAG.
+
+Todos os operadores derivam do operador base chamado BaseOperator, e herdam vários atributos e métodos. Existem 3 tipos de operadores:
+
+- Operadores que fazem uma ação ou chamam uma ação em outro sistema;
+- Operadores usados para mover dados de um sistema para outro;
+- Operadores usados como sensores, que ficam executando até que um certo critério é atingido. Sensores derivam da BaseSensorOperator e utilizam o método poke para testar o critério até que este se torne verdadeiro ou True, e usam o poke_interval para determinar a frequência de teste.
