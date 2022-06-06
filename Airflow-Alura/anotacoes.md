@@ -94,3 +94,40 @@ Todos os operadores derivam do operador base chamado BaseOperator, e herdam vár
 **Ajustando o salvamento dos arquivos**
 - Adicionar path_file no init
 - Passar self_path para o execute
+
+
+## Plugin
+Classe utilizada para desenvolvimento de plugins personalizados, sendo possível desenvolver plugins nas seguintes categorias.
+```md
+    - name
+    - source
+    - hooks
+    - executors
+    - macros
+    - admin_views
+    - flask_blueprints
+    - menu_links
+    - appbuilder_views
+    - appbuilder_menu_items
+```
+
+
+Para criar plugin personalizado, é necessário criar o arquivo airflow_plugin.py no diretório de plugins, o airflow 2.0 não aceita instaciar airflow.operators.nome_projeto diretamento, é necessário adicionar a pasta plugins no sys.path para localização do pacote ou criar um pacote dos operators.
+
+**Adicionando pacote ao sys.path**
+Arquivo airflow_plugin.py
+```
+from airflow.plugins_manager import AirflowPlugin
+from operators.twitter_operator import TwitterOperator
+import sys
+import os
+
+# inserir path do airflow no ambiente das libs
+sys.path.insert(0,os.path.join(os.environ.get('AIRFLOW_HOME'), 'plugins'))
+
+
+class AluraAirflowPlugin(AirflowPlugin):
+    # normalmente e o nome da empresa/projeto
+    name = "alura"
+    operators = [TwitterOperator]
+```

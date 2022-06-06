@@ -1,5 +1,6 @@
-from airflow.models import BaseOperator, DAG, TaskInstance
-
+# from airflow.models import BaseOperator, DAG, TaskInstance
+from airflow.models import BaseOperator, DAG
+from airflow.models.taskinstance import TaskInstance
 from airflow.utils.decorators import apply_defaults
 from hooks.twitter_hook import TwitterHook
 import json
@@ -53,7 +54,7 @@ class TwitterOperator(BaseOperator):
 if __name__ == "__main__":
 
     # criando dag para teste, para que assim seja possível executar o operator
-    with DAG(dag_id="TwitterTest", start_date=datetime.now() - timedelta(days=1)) as dag:
+    with DAG(dag_id="TwitterTest", start_date=datetime.now()) as dag:
         OPERATORS_DIR = os.path.dirname(os.path.abspath(__file__))
         PLUGINS_DIR = os.path.dirname(OPERATORS_DIR)
         AIRFLOW_DIR = os.path.dirname(PLUGINS_DIR)
@@ -74,6 +75,6 @@ if __name__ == "__main__":
 
         # todos funcionaram, apesar de aparecer muito redundante
         # ti = TaskInstance(task=to, run_id=to.task_id)
-        # ti = TaskInstance(task=to, run_id=dag.dag_id, execution_date=datetime.now()- timedelta(days=1))
+        ti = TaskInstance(task=to, run_id=dag.dag_id, start_date=datetime.now()- timedelta(days=2))
         # ti = TaskInstance(task=to)
-        to.run()
+        ti.run()
