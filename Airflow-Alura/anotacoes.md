@@ -131,3 +131,80 @@ class AluraAirflowPlugin(AirflowPlugin):
     name = "alura"
     operators = [TwitterOperator]
 ```
+
+
+## Intalação do PySpark/Spark
+
+```
+pip install pyspark
+
+# execucao
+pyspark
+```
+
+Download do [Spark](https://spark.apache.org/downloads.html) e execução
+```sh
+tar -xf name_file.tgz
+
+# abre o shell com scala
+./name_file/bin/spark-shell
+
+# executa um exemplo com 10 tasks para execução
+./bin/spark-submit examples/src/main/python/pi.py 10
+```
+
+**Inicialização do Spark**
+```py
+#objeto mais importate do Spark
+from pyspark.sql import SparkSession
+# builder: vai construir a sessão
+# appName: nome util para utilizacao do logs
+# getOrCreate: verificar se existe sessao ativa ou criar uma nova
+
+spark = SparkSession\
+        .builder\
+        .appName('twitter_transformation')\
+        .getOrCreate()
+```
+
+
+**Resilient Distributed Dataset (RDD) no Spark**
+```py
+# lista exemplo
+data = [1,2,3,4,5]
+# criar rdd
+rdd = sc.parallelize(data)
+
+# numero de particoes, por padrao e numero de cores do processador
+rdd.getNumPartitions()
+
+# onde cada informacao esta alocado no rdd
+rdd.glom().collect()
+
+# operacao com todos os nodes e retornando resposta ao node main
+rdd.reduce(lambda x, y: x + y)
+
+# obter todos os dados em um node main
+rdd.collect()
+
+# criar dataframe em dados Row
+from pyspark.sql import Row
+df = rdd.map(lambda x: Row(n=x)).toDF()
+
+
+# utilizando functions
+from pyspark.sql import functions as f
+
+# a functions desc e comandos sql também é permitido no spark
+df.select('n').orderBy(f.desc('n')).show()
+
+# criando tabela temporaria
+df.createOrReplaceTempView('numeros')
+# consultando tabelas
+spark.sql('show tables').show()
+# select na tabela com sql
+spark.sql('select sum(n) from numeros').show()
+
+# sum com functions spark
+df.agg(f.sum('n')).show()
+```
