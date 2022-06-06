@@ -89,3 +89,8 @@ Todos os operadores derivam do operador base chamado BaseOperator, e herdam vár
 - Operadores que fazem uma ação ou chamam uma ação em outro sistema;
 - Operadores usados para mover dados de um sistema para outro;
 - Operadores usados como sensores, que ficam executando até que um certo critério é atingido. Sensores derivam da BaseSensorOperator e utilizam o método poke para testar o critério até que este se torne verdadeiro ou True, e usam o poke_interval para determinar a frequência de teste.
+
+
+**Ajustando o salvamento dos arquivos**
+- Adicionar path_file no init
+- Passar self_path para o execute
