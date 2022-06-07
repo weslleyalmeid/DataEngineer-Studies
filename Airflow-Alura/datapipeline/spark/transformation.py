@@ -1,55 +1,61 @@
-from pyspark.sql import SparkSession
+import argparse
 import os
+
 import ipdb
+from pyspark.sql import SparkSession
 from pyspark.sql import functions as f
 
 SPARK_DIR = os.path.dirname(os.path.abspath(__file__))
 DATAPIPE_DIR = os.path.dirname(SPARK_DIR)
-DATALAKE_DIR = os.path.join(DATAPIPE_DIR, 'datalake')
-TWITTER_DIR = os.path.join(DATALAKE_DIR, 'twitter_aluraonline')
-
-if __name__ == '__main__':
-
-    spark = SparkSession\
-        .builder\
-        .appName('twitter_transformation')\
-        .getOrCreate()
-
-    df = spark.read.json(TWITTER_DIR)
-    df.printSchema()
-    df.show()
-
-    # FLATTEN DATA
-
-    # selectiona data.id da primeira linha e não comprimir
-    df.select('data.id').show(1, False)
-
-    # subiu os niveis na linha e subiu para uma nova linha cada tweet
-    df.select(f.explode('data')).show(1, False)
-    # renomear colunas com alias
-    tweet_df = df.select(f.explode('data').alias('tweets')).select( 'tweets.author_id',
-                                                                    'tweets.conversation_id',
-                                                                    'tweets.created_at',
-                                                                    'tweets.id',
-                                                                    'tweets.in_reply_to_user_id',
-                                                                    'tweets.public_metrics.*',
-                                                                    'tweets.text'
-                                                                )
-    tweet_df.printSchema()
-    tweet_df.show()
+DATALAKE_DIR = os.path.join(DATAPIPE_DIR, "datalake")
+BRONZE_DIR = os.path.join(DATALAKE_DIR, "bronze")
+SILVER_DIR = os.path.join(DATALAKE_DIR, "silver")
+GOLD_DIR = os.path.join(DATALAKE_DIR, "gold")
+TWITTER_DIR = os.path.join(BRONZE_DIR, "twitter_aluraonline")
 
 
-    # FLATTEN USERS
-    df.printSchema()
-    df.select(f.explode('includes.users')).printSchema()
-    # minha tentiva, basicamente e preciso espeficiar quando tem subnivel aninhado, melhor usar formato abaixo
-    # users_df = df.select(f.explode('includes.users').alias('users')).select(  'users.created_at',
-    #                                                                 'users.id',
-    #                                                                 'users.name',
-    #                                                                 'users.username',
-    #                                                             )
+def get_tweets_data(df):
+    return df.select(f.explode("data").alias("tweets")).select(
+        "tweets.author_id",
+        "tweets.conversation_id",
+        "tweets.created_at",
+        "tweets.id",
+        "tweets.in_reply_to_user_id",
+        "tweets.public_metrics.*",
+        "tweets.text",
+    )
 
-    # solution simplificado
-    users_df = df.select(f.explode('includes.users').alias('users')).select('users.*')
-    users_df.printSchema()
-    users_df.show(1, False)
+
+def get_users_data(df):
+    return df.select(f.explode("includes.users").alias("users")).select("users.*")
+
+
+def export_json(df, dest):
+    df.coalesce(1).write.mode("overwrite").json(dest)
+
+
+def twitter_transform(spark, src, dest, process_date):
+    df = spark.read.json(src)
+
+    tweet_df = get_tweets_data(df)
+    user_df = get_users_data(df)
+
+    TABLE_DIR = os.path.join(dest, "{table_name}", f"process_date={process_date}")
+
+    export_json(tweet_df, TABLE_DIR.format(table_name="tweet"))
+    export_json(user_df, TABLE_DIR.format(table_name="user"))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description='Spark Twitter Transformation'
+    )
+    parser.add_argument('--src', required=True)
+    parser.add_argument('--dest', required=True)
+    parser.add_argument('--process-date', required=True)
+
+    args = parser.parse_args()
+    
+    spark = SparkSession.builder.appName("twitter_transformation").getOrCreate()
+
+    twitter_transform(spark, args.src, args.dest, args.process_date)

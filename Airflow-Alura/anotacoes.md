@@ -208,3 +208,55 @@ spark.sql('select sum(n) from numeros').show()
 # sum com functions spark
 df.agg(f.sum('n')).show()
 ```
+
+## Vinculando Spark ao Airflow
+```sh
+# instalar libs necessárias
+pip install apache-airflow-providers-apache-spark==2.1.3
+```
+
+Criar task na dag
+```py
+from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
+
+twitter_transform = SparkSubmitOperator(
+    task_id='transform_twitter_aluraoneline',
+    application=os.path.join(
+            SPARK_DIR,
+            'transformation.py'
+        ),
+    name='twitter_transformation',
+    application_args=[
+        '--src', 
+        os.path.join(BRONZE_DIR, 'twitter_aluraonline', 'extract_date=2022-06-05'),
+        '--dest', 
+        os.path.join(SILVER_DIR, 'twitter_aluraonline'),
+        '--process-date',
+        '{{ ds }}'
+    ]
+)
+```
+
+
+Adicionando Conexões pra API o Spark
+```md
+admin > connections > spark_default > edit
+
+Preencher campos:
+- connection type: Spark
+- host: local
+<!-- - extra: {"spark-home": "diretorio_do_spark"} -->
+- extra: {"spark-home": "documents/spark-3.2.1-bin-hadoop3.2"}
+```
+
+Executando as dags
+```sh
+# listando as dags
+airflow dags list
+
+# listar tarefas da dag
+airflow tasks list twitter_dag
+
+# testar tasks da dag, command layout: command subcommand dag_id task_id date
+airflow tasks test twitter_dag transform_twitter_aluraonline 2021-06-07
+```
