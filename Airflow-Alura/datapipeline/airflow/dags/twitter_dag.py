@@ -3,6 +3,7 @@ from datetime import datetime
 from email.mime import application
 
 from airflow import DAG
+from airflow.utils.dates import days_ago
 from airflow.providers.apache.spark.operators.spark_submit import \
     SparkSubmitOperator
 from operators.twitter_operator import TwitterOperator
@@ -17,7 +18,17 @@ SILVER_DIR = os.path.join(DATALAKE_DIR, "silver")
 GOLD_DIR = os.path.join(DATALAKE_DIR, "gold")
 TWITTER_DIR = os.path.join(BRONZE_DIR, "twitter_aluraonline")
 
-with DAG(dag_id="twitter_dag", start_date=datetime.now()) as dag:
+ARGS = {
+    'owner': 'aiflow',
+    'depends_on_past': False,
+    'start_date': days_ago(6)
+}
+
+# formul.a de padronizacao do timestamp
+TIMESTAMP_FORMAT = '%Y-%m-%dT%H:%M:%S.00Z'
+
+# max_active_runs = maximo de instancia em paralelo
+with DAG(dag_id="twitter_dag", default_args=ARGS, schedule_interval='0 9 * * *', max_active_runs=1) as dag:
     twitter_operator = TwitterOperator(
         task_id="twitter_aluraonline",
         query="AluraOnline",
@@ -27,6 +38,8 @@ with DAG(dag_id="twitter_dag", start_date=datetime.now()) as dag:
             "extract_date={{ ds }}",
             "AluraOnline_{{ ds_nodash }}.json",
         ),
+        start_time= f'{{ execution_date.strftime("{ TIMESTAMP_FORMAT }") }}',
+        end_time= f'{{ next_execution_date.strftime("{ TIMESTAMP_FORMAT }") }}'
     )
 
     twitter_transform = SparkSubmitOperator(
@@ -42,3 +55,7 @@ with DAG(dag_id="twitter_dag", start_date=datetime.now()) as dag:
             "{{ ds }}",
         ],
     )
+
+    # conectar o primeiro operador ao segundo
+    twitter_operator >> twitter_transform
+
