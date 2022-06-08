@@ -15,7 +15,7 @@ export AIRFLOW_HOME=${PWD}/airflow
 export AIRFLOW_HOME=~/airflow
 
 # Install Airflow using the constraints file
-AIRFLOW_VERSION=2.3.1
+AIRFLOW_VERSION=2.3.2
 PYTHON_VERSION="$(python --version | cut -d " " -f 2 | cut -d "." -f 1-2)"
 # For example: 3.7
 CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
@@ -259,4 +259,26 @@ airflow tasks list twitter_dag
 
 # testar tasks da dag, command layout: command subcommand dag_id task_id date
 airflow tasks test twitter_dag transform_twitter_aluraonline 2021-06-07
+airflow tasks test twitter_dag twitter_operator 2021-06-08
+```
+
+
+**Alura - Principais comandos**
+```
+owner - Nome do dono da tarefa, apenas para descrição.
+email - Endereço de email usado para alertas. Pode ser um único email ou vários divididos por vírgula, ponto e vírgula ou uma lista de strings.
+email_on_retry - Indica se um email deve ser enviado quando houver falha na reexecução de uma tarefa.
+email_on_failure - Indica se um email deve ser enviado caso uma tarefa tenha falhado.
+retries - Número de tentativas que uma tarefa deve tentar executar antes de falhar.
+retry_delay - Tempo de espera entre tentativas de execução.
+start_date - Data e hora da primeira execução do DAG.
+end_date - Data e hora de término da última execução do DAG.
+depends_on_past - Se True, as tarefas vão executar sequencialmente e somente quando a tarefa anterior for finalizada com sucesso.
+sla - Vem de Service Level Agreement, ou Acordo de Nível de Serviço, representado por um timedelta; envia um email se qualquer execução passar deste tempo após a execução sem que tenha tido sucesso, ou seja, quanto de atraso cada execução pode ter.
+execution_timeout - Máximo de tempo permitido para execução de uma tarefa; se passar deste tempo, um erro é criado, e a tarefa falha.
+on_failure_callback - Uma função que é chamada quando uma tarefa falha.
+on_execute_callback - Uma função que é chamada antes de uma tarefa ser executada.
+on_retry_callback - Uma função que é chamada quando uma tarefa tenta executar novamente após uma falha.
+on_success_callback - Uma função que é chamada quando uma tarefa finaliza com sucesso.
+task_concurrency - Este é o número possível de execuções do DAG em paralelo em datas diferentes.
 ```

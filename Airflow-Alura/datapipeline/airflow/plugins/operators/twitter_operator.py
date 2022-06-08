@@ -17,7 +17,6 @@ class TwitterOperator(BaseOperator):
         'file_path',
         'start_time',
         'end_time'
-
     ]
 
     # @apply_defaults, deprecated
