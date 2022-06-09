@@ -191,9 +191,14 @@ rdd.collect()
 from pyspark.sql import Row
 df = rdd.map(lambda x: Row(n=x)).toDF()
 
-
 # utilizando functions
 from pyspark.sql import functions as f
+
+# ver o schema do dataframe
+df.printSchema()
+
+# imprimit 1 linha e nao comprimir os dados
+users_df.show(1, False)
 
 # a functions desc e comandos sql também é permitido no spark
 df.select('n').orderBy(f.desc('n')).show()
@@ -207,6 +212,77 @@ spark.sql('select sum(n) from numeros').show()
 
 # sum com functions spark
 df.agg(f.sum('n')).show()
+```
+
+
+**Exemplo de código Pyspark**
+```py
+   spark = SparkSession\
+        .builder\
+        .appName('twitter_transformation')\
+        .getOrCreate()
+
+    df = spark.read.json(TWITTER_DIR)
+    df.printSchema()
+    df.show()
+
+    # FLATTEN DATA
+
+    # selectiona data.id da primeira linha e não comprimir
+    df.select('data.id').show(1, False)
+
+    # subiu os niveis na linha e subiu para uma nova linha cada tweet
+    df.select(f.explode('data')).show(1, False)
+    # renomear colunas com alias
+    tweet_df = df.select(f.explode('data').alias('tweets')).select( 'tweets.author_id',
+                                                                    'tweets.conversation_id',
+                                                                    'tweets.created_at',
+                                                                    'tweets.id',
+                                                                    'tweets.in_reply_to_user_id',
+                                                                    'tweets.public_metrics.*',
+                                                                    'tweets.text'
+                                                                )
+    tweet_df.printSchema()
+    tweet_df.show()
+
+
+    # FLATTEN USERS
+    df.printSchema()
+    df.select(f.explode('includes.users')).printSchema()
+    # minha tentiva, basicamente e preciso espeficiar quando tem subnivel aninhado, melhor usar formato abaixo
+    # users_df = df.select(f.explode('includes.users').alias('users')).select(  'users.created_at',
+    #                                                                 'users.id',
+    #                                                                 'users.name',
+    #                                                                 'users.username',
+    #                                                             )
+
+    # solution simplificado
+    users_df = df.select(f.explode('includes.users').alias('users')).select('users.*')
+    users_df.printSchema()
+    users_df.show(1, False)
+
+    # verificar o numero de particoes
+    tweet_df.rdd.getNumPartitions()
+
+    # salvar arquivo csv em modo sobrescrito, adicionando header
+    tweet_df.write.mode('overwrite').option('header', True).csv(os.path.join(DATALAKE_DIR, 'export'))
+
+    # salvar arquivo csv em modo sobrescrito, adicionando header e reparticionar(pode ser para mais ou menos)
+    tweet_df.repartition(4).write.mode('overwrite').option('header', True).csv(os.path.join(DATALAKE_DIR, 'export_2'))
+
+    # coalesce transforma n reparticoes em m onde m < n
+    tweet_df.repartition(8).coalesce(2).write.mode('overwrite').option('header', True).csv(os.path.join(DATALAKE_DIR, 'export_3'))
+
+    # particoes ideias sao baseados em campos que apresentam uma boa cardinalidade (datas costumam ser boas cardinalidades)
+    tweet_df.groupBy(f.to_date('created_at')).count().show()
+
+    # criar nova coluna withColumn('nome_coluna', campo_df), repartinco com base na data
+    export_df = tweet_df.withColumn('created_date', f.to_date('created_at')).repartition('created_date')
+    export_df.write.mode('overwrite').partitionBy('created_date').json(os.path.join(DATALAKE_DIR, 'export_4'))
+    
+    read_df = spark.read.json(os.path.join(DATALAKE_DIR, 'export_4'))
+    # explain utilizado nos sgbds
+    read_df.where('created_date = "2021-06-01"').explain()
 ```
 
 ## Vinculando Spark ao Airflow
@@ -281,4 +357,39 @@ on_execute_callback - Uma função que é chamada antes de uma tarefa ser execut
 on_retry_callback - Uma função que é chamada quando uma tarefa tenta executar novamente após uma falha.
 on_success_callback - Uma função que é chamada quando uma tarefa finaliza com sucesso.
 task_concurrency - Este é o número possível de execuções do DAG em paralelo em datas diferentes.
+```
+
+
+## Trabalhando na etapa Gold
+
+Exemplo de transformação para gold
+
+```py
+    tweet = spark.read.json(BASE_DIR.format(stage='silver', folder_name='tweet'))
+    alura = tweet.where('author_id = "1566580880"').select('author_id', 'conversation_id')
+
+    tweet = tweet.alias('tweet')\
+        .join(
+            alura.alias('alura'),
+            [
+                tweet.author_id != alura.author_id,
+                tweet.conversation_id == tweet.conversation_id
+            ],
+            'left'
+        )\
+        .withColumn('alura_conversation', when(col('alura.conversation_id').isNotNull(), 1).otherwise(0))\
+        .withColumn('reply_alura', when(col('tweet.in_reply_to_user_id') == "1566580880", 1).otherwise(0))\
+        .groupBy(to_date('created_at').alias('created_date'))\
+        .agg(
+            countDistinct('id').alias('n_tweets'),
+            countDistinct('tweet.conversation_id').alias('n_conversation'),
+            sum('alura_conversation').alias('alura_conversation'),
+            sum('reply_alura').alias('reply_alura'),
+
+        )\
+        .withColumn('weekday', date_format('created_date', 'E'))
+
+    tweet.coalesce(1)\
+        .write\
+        .json(BASE_DIR.format(stage='gold', folder_name='twitter_insight_tweet'))
 ```

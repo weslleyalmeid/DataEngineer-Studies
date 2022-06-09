@@ -1,5 +1,6 @@
 {
     "python.analysis.extraPaths": [
         "./datapipeline/airflow/plugins"
-    ]
+    ],
+    "jupyter.jupyterServerType": "remote"
 }

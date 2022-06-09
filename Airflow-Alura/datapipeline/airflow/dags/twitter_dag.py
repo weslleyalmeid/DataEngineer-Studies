@@ -14,10 +14,6 @@ AIRFLOW_DIR = os.path.dirname(DAGS_DIR)
 DATAPIPE_DIR = os.path.dirname(AIRFLOW_DIR)
 DATALAKE_DIR = os.path.join(DATAPIPE_DIR, "datalake")
 SPARK_DIR = os.path.join(DATAPIPE_DIR, "spark")
-BRONZE_DIR = os.path.join(DATALAKE_DIR, "bronze")
-SILVER_DIR = os.path.join(DATALAKE_DIR, "silver")
-GOLD_DIR = os.path.join(DATALAKE_DIR, "gold")
-TWITTER_DIR = os.path.join(BRONZE_DIR, "twitter_aluraonline")
 
 BASE_DIR = os.path.join(DATALAKE_DIR, '{stage}','twitter_aluraonline', '{partition}')
 PARTITION_DIR = 'extract_date={{ ds }}'
