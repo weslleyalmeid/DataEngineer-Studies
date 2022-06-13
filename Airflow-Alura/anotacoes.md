@@ -393,3 +393,34 @@ Exemplo de transformação para gold
         .write\
         .json(BASE_DIR.format(stage='gold', folder_name='twitter_insight_tweet'))
 ```
+
+**Instalando e configurando Zeppelin**
+```sh
+# https://zeppelin.apache.org/docs/latest/quickstart/install.html
+
+# unzip o arquivo
+tar -xf zeppelin-0.10.1-bin-all.tgz
+
+
+cd zeppelin-0.10.1-bin-all
+
+# inicializar=start e parar=stop
+bin/zeppelin-daemon.sh start
+bin/zeppelin-daemon.sh stop
+```
+
+Após iniciado abri *localhost:8080* e ir em 
+- perfil > interpreter > pesquise spark > adicione o path da pasta spark no campo SPARK_HOME
+- Se der erro, check se o python funciona, caso não, adicione *alias python=python3* no seu bashrc ou zshrc (cuidado que pode gerar problemas com versões 2.0)
+
+
+Crie um notebook e execute o comando
+```py
+%pyspark
+
+df = spark.read.json('/home/weslley/Desktop/DataEngineer-Studies/Airflow-Alura/datapipeline/datalake/gold/twitter_aluraonline/twitter_insight_tweet')
+
+z.show(df)
+```
+
+
